@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:twitter_app/twitter/twitter_datetime.dart';
 import 'package:twitter_app/ui/tweet_item.dart';
 import 'package:flutter/material.dart';
@@ -14,13 +16,20 @@ class TweetList extends StatefulWidget {
 
 class _TweetListState extends State<StatefulWidget> {
 
+  static final Duration oneMinute = const Duration(minutes: 1);
+  static final Duration loadRepliesInterval = const Duration(seconds: 1);
+
   static final TwitterClient twitterClient = new TwitterClient();
   final TwitterDateTime _twitterDateTime = new TwitterDateTime();
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = new GlobalKey<RefreshIndicatorState>();
   final ScrollController _controller = new ScrollController();
 
   List _tweets = [];
+  List _tweetIdsRepliesNotLoaded = [];
   bool _hasError = false;
+
+  Timer timer;
+  Timer timer2;
 
   @override
   void initState() {
@@ -55,9 +64,8 @@ class _TweetListState extends State<StatefulWidget> {
   }
 
   ListView getListView() => new ListView.builder(
-      //shrinkWrap: true,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(5.0),
+      padding: const EdgeInsets.all(0.0),
       itemCount: _tweets.length,
       controller: _controller,
       itemBuilder: (BuildContext context, int index) {
@@ -67,15 +75,16 @@ class _TweetListState extends State<StatefulWidget> {
         }
 
         Map item = _tweets[index];
-        print(item);
 
-        DateTime created = _twitterDateTime.parse(item['created_at']);
+        List replies = item['replies'];
 
         String retweetedBy = '';
         if (item['retweeted_status'] != null) {
           retweetedBy = item['user']['name'];
           item = item['retweeted_status'];
         }
+
+        DateTime created = _twitterDateTime.parse(item['created_at']);
 
         List<String> mediaUrls = [];
         List<String> mediaUrlsInText = [];
@@ -96,14 +105,15 @@ class _TweetListState extends State<StatefulWidget> {
             item['user']['name'],
             item['user']['profile_image_url'],
             item['full_text'],
-            0,
+            replies?.length,
             item['retweet_count'],
             item['favorite_count'],
             _twitterDateTime.formatAsDifference(created, new DateTime.now()),
             item['entities']['urls'],
             retweetedBy,
             mediaUrls, mediaUrlsInText,
-            userMentions
+            userMentions,
+            item['user']['verified']
         );
 
       });
@@ -118,6 +128,9 @@ class _TweetListState extends State<StatefulWidget> {
     if (showLoadingDialog()) {
       return getProgressDialog();
     }
+
+    timer = new Timer.periodic(oneMinute, (timer) => _redrawItems());
+    timer2 = new Timer.periodic(loadRepliesInterval, (timer2) => _loadRepliesForOneTweet());
 
     return
         new RefreshIndicator(
@@ -138,6 +151,10 @@ class _TweetListState extends State<StatefulWidget> {
 
     try {
       List newTweets = await twitterClient.getTweets(20, lastId);
+
+      for (Map tweet in newTweets) {
+        _tweetIdsRepliesNotLoaded.add(tweet['id']);
+      }
 
       setState(() {
         if (replace) {
@@ -162,5 +179,30 @@ class _TweetListState extends State<StatefulWidget> {
       });
     }
 
+  }
+  _redrawItems() {
+    print('redrawing items');
+    setState(() {
+      // refresh view
+    });
+  }
+
+  _loadRepliesForOneTweet() async {
+    Map item = null;
+    for (Map tweet in _tweets) {
+      if (tweet['replies'] == null) {
+        item = tweet;
+        break;
+      }
+    }
+
+    if (item != null && _tweetIdsRepliesNotLoaded.contains(item['id'])) {
+      _tweetIdsRepliesNotLoaded.remove(item['id']);
+      print('Getting replies for ' + item['id'].toString());
+      List<Map> replies = await twitterClient.getReplies(item);
+      setState(() {
+        item['replies'] = replies;
+      });
+    }
   }
 }

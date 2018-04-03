@@ -5,24 +5,35 @@ class TabbedAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    TabBar tabBar = new TabBar(
+      isScrollable: true,
+      tabs: choices.map((Choice choice) {
+        return new Tab(
+          //text: choice.title,
+          icon: new Icon(choice.icon)
+        );
+      }).toList(),
+    );
+
     return new MaterialApp(
       home: new DefaultTabController(
         length: choices.length,
         child: new Scaffold(
-          appBar: new AppBar(
-            title: const Text('Twitter App'),
-            bottom: new TabBar(
-              isScrollable: true,
-              tabs: choices.map((Choice choice) {
-                return new Tab(
-                  //text: choice.title,
-                  icon: new Icon(choice.icon),
-                );
-              }).toList(),
-            ),
+          appBar: new PreferredSize(
+            preferredSize: tabBar.preferredSize,
+              child: new Container(
+                color: Theme.of(context).primaryColor,
+                child: new Padding(padding: const EdgeInsets.only(top: 25.0), child: tabBar)
+              )
           ),
           body: new TabBarView(
-            children: [new TweetList()]
+            children: [
+              new Padding(padding: const EdgeInsets.only(top: 0.0), child: new TweetList()),
+              new Text('search'),
+              new Text('notifications'),
+              new Text('messages')
+            ]
           ),
         ),
       ),

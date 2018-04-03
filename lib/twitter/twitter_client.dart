@@ -3,15 +3,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart';
 import 'package:twitter/twitter.dart';
+import 'package:twitter_app/twitter/api_keys.dart';
 
 
 class TwitterClient {
-
-  static const String consumerKey = '';
-  static const String consumerSecret = '';
-  static const String accessToken = '114196268-';
-  static const String accessSecret = '';
-
 
   Future<List> getTweets(int count, int lastId) async {
 
@@ -22,32 +17,42 @@ class TwitterClient {
       maxIdPart = "&max_id=" + lastId.toString();
     }
 
-    final Twitter twitter = new Twitter(consumerKey, consumerSecret, accessToken, accessSecret);
-    Response response = await twitter.request("GET", "statuses/home_timeline.json?exclude_replies=false&tweet_mode=extended&count=" + count.toString() + maxIdPart);
-    return JSON.decode(response.body);
+    Response response = await _getClient().request("GET", "statuses/home_timeline.json?exclude_replies=false&tweet_mode=extended&count=" + count.toString() + maxIdPart);
+    List<Map> json = JSON.decode(response.body);
+    return json;
+  }
+
+  Future<List> getReplies(Map tweet) async {
+
+    if (tweet['retweeted_status'] != null) {
+      tweet = tweet['retweeted_status'];
+    }
+
+    int tweetId = tweet['id'];
+    String user = tweet['user']['screen_name'];
+    String q = "to%3A" + user;
+    Response response = await _getClient().request("GET", "search/tweets.json?q=" + q + "&result_type=recent&&since_id=" + tweetId.toString() + "&count=100");
+    List<Map> replies = [];
+    var results = JSON.decode(response.body);
+    //print(results);
+    for (Map result in results['statuses']) {
+      if (result['in_reply_to_status_id'] == tweetId) {
+        replies.add(result);
+      }
+    }
+    print('@' + user + ' has ' + replies.length.toString() + ' replies');
+    return replies;
   }
 
   Future<Map> getUser(String idStr) async {
-
     print('Getting user ' + idStr);
 
-    final Twitter twitter = new Twitter(consumerKey, consumerSecret, accessToken, accessSecret);
-    Response response = await twitter.request("GET", "users/show.json?user_id=" + idStr);
+    final Response response = await _getClient().request("GET", "users/show.json?user_id=" + idStr);
     return JSON.decode(response.body);
   }
 
-}
+  Twitter _getClient() {
+    return new Twitter(ApiKeys.consumerKey, ApiKeys.consumerSecret, ApiKeys.accessToken, ApiKeys.accessSecret);
+  }
 
-//E/flutter ( 3304): [ERROR:topaz/lib/tonic/logging/dart_error.cc(16)] Unhandled exception:
-//E/flutter ( 3304): NoSuchMethodError: The method 'openUrl' was called on null.
-//E/flutter ( 3304): Receiver: null
-//E/flutter ( 3304): Tried calling: openUrl("GET", Instance of '_SimpleUri')
-//E/flutter ( 3304): #0      Object.noSuchMethod (dart:core-patch/dart:core/object_patch.dart:46)
-//E/flutter ( 3304): #1      IOClient.send (package:http/src/io_client.dart:30:36)
-//E/flutter ( 3304): <asynchronous suspension>
-//E/flutter ( 3304): #2      Client.send (package:oauth/client.dart:105:22)
-//E/flutter ( 3304): #3      Client.request (package:twitter/src/client.dart:34:22)
-//E/flutter ( 3304): #4      Twitter.request (package:twitter/twitter.dart:65:19)
-//E/flutter ( 3304): #5      TwitterClient.getTweets (package:twitter_app/twitter/twitter_client.dart:26:39)
-//E/flutter ( 3304): <asynchronous suspension>
-//E/flutter ( 3304): #6      _TweetListState._loadTweets (package:twitter_app/ui/tweet_list.dart:140:44)
+}

@@ -11,7 +11,7 @@ class IconWithText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return new Row(children: <Widget>[
-      new Icon(icon, color: Colors.grey),
+      new Icon(icon, color: Colors.grey, size: 12.0),
       new Container(
           padding: const EdgeInsets.only(left: 4.0),
           child: new Text(text))

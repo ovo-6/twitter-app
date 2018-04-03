@@ -36,10 +36,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
 // TODO:
 // prevest twitter id @ovo6 v textu na jmeno
-// refresh stari prispevku kazdou minutu
 // komentare
 // zobrazit kdo dal like
 // zadavani jmena/ hesla - nepujde, misto toho key a secret
 // ukladani tweetu
-// zobrazovat chyby nacitani pres rest
 

@@ -8,7 +8,10 @@ import 'package:twitter_app/ui/picture_detail_dialog.dart';
 
 class TweetItem extends MyListTile {
 
-  static final TextStyle retweetTextStyle = const TextStyle(fontSize: 14.0, color: Colors.grey);
+  static const double mainTextSize = 14.0;
+  static const double paddingBelowAuthorText = 4.0;
+  static const double paddingAboveAuthorText = 10.0;
+  static final TextStyle retweetTextStyle = const TextStyle(fontSize: 12.0, color: Colors.grey);
   static final LinkBuilder linkBuilder = const LinkBuilder();
 
   final String authorName;
@@ -24,31 +27,48 @@ class TweetItem extends MyListTile {
   final List<String> mediaUrls;
   final List<String> mediaUrlsInText;
   final List userMentions;
+  final bool verified;
 
   const TweetItem (this.authorId, this.authorName, this.iconSrc, this.text,
       this.commentsCount, this.retweetsCount, this.likesCount, this.dateStr,
       this.urls, this.retweetedBy, this.mediaUrls, this.mediaUrlsInText,
-      this.userMentions);
+      this.userMentions, this.verified);
 
   @override
   Widget build(BuildContext context) {
     final ThemeData themeData = Theme.of(context);
-    final TextStyle linkStyle = themeData.textTheme.subhead.copyWith(color: themeData.accentColor);
-    final TextStyle textStyle = themeData.textTheme.subhead;
-
-    Widget avatar = new CircleAvatar(backgroundImage: new NetworkImage(iconSrc));
+    final TextStyle linkStyle = themeData.textTheme.subhead.copyWith(fontSize: mainTextSize, color: themeData.accentColor);
+    final TextStyle textStyle = themeData.textTheme.subhead.copyWith(fontSize: mainTextSize);
 
     List<Widget> columnChildren = [];
+
+    Widget avatar = new GestureDetector(
+      child: new CircleAvatar(backgroundImage: new NetworkImage(iconSrc)),
+        onTap: () => _showPersonDetail(context)
+    );
+
     if (retweetedBy != null && retweetedBy.length > 0) {
-      columnChildren.add(new Padding(padding: const EdgeInsets.only(bottom: 5.0), child: new Text(retweetedBy + ' Retweeted', style: retweetTextStyle)));
-      avatar = new Padding(padding: const EdgeInsets.only(top: 28.0), child: avatar);
+      columnChildren.add(new Padding(
+          padding: const EdgeInsets.only(top: paddingAboveAuthorText),
+          child: new Text(retweetedBy + ' retweeted', style: retweetTextStyle)));
+      avatar = new Padding(padding: const EdgeInsets.only(top: paddingAboveAuthorText + 28.0), child: avatar);
+    } else {
+      avatar = new Padding(padding: const EdgeInsets.only(top: paddingAboveAuthorText), child: avatar);
     }
+
 
     Row authorRow = new Row(children: <Widget>[
       new Text(authorName, style: new TextStyle(fontWeight: FontWeight.bold)),
+      new Text('✓', style: new TextStyle(color: Colors.green)),
+      new Text(' @' + authorId, style: new TextStyle(color: Colors.grey)),
       new Text(' • ' + dateStr, style: new TextStyle(color: Colors.grey)),
     ]);
-    columnChildren.add(authorRow);
+    if (!verified) {
+      authorRow.children.removeAt(1);
+    }
+    columnChildren.add(new Container(child: authorRow, padding: const EdgeInsets.only(
+        bottom: paddingBelowAuthorText,
+        top: paddingAboveAuthorText)));
 
     RichText richText = linkBuilder.buildText(text, urls, mediaUrlsInText, userMentions, textStyle, linkStyle);
 
@@ -59,11 +79,11 @@ class TweetItem extends MyListTile {
     titleChildren.add(richText);
 
     if (mediaUrls.length > 0) {
-      print('Media count: ' + mediaUrls.length.toString());
+      //print('Media count: ' + mediaUrls.length.toString());
 
       double height = 150.0;
       if (mediaUrls.length == 1) {
-        height = 200.0;
+        height = 300.0;
       }
 
       List<Widget> images = [];
@@ -92,24 +112,24 @@ class TweetItem extends MyListTile {
     );
 
     MyListTile tile = new MyListTile(
-      dense: false,
+      dense: true,
       leading: avatar,
       title: title,
       subtitle:
           new Container(
-              padding: const EdgeInsets.only(top: 8.0),
+              padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
               child:
             new Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                new IconWithText(Icons.chat_bubble_outline, commentsCount.toString()),
-                new IconWithText(Icons.settings_backup_restore, retweetsCount.toString()),
-                new IconWithText(Icons.favorite, likesCount.toString())
+                new IconWithText(Icons.chat_bubble_outline, commentsCount?.toString() ?? ''),
+                new IconWithText(Icons.settings_backup_restore, retweetsCount?.toString() ?? ''),
+                new IconWithText(Icons.favorite, likesCount?.toString() ?? '')
               ]
             )
           )
     );
 
-    return new Column(children: <Widget>[tile, new Divider()]);
+    return new Column(children: <Widget>[tile, new Divider(height: 1.0)]);
   }
 
 
@@ -119,6 +139,15 @@ class TweetItem extends MyListTile {
       child: new PictureDetailDialog(
         child: image,
       ),
+    )) {
+
+    }
+  }
+
+  Future<Null> _showPersonDetail(BuildContext context) async {
+    switch (await showDialog<Null>(
+      context: context,
+      child: new Card(child: new Text('Profile of ' + authorId))
     )) {
 
     }

@@ -277,6 +277,8 @@ class MyListTile extends StatelessWidget {
   ///
   /// * [Divider], which you can use to obtain this effect manually.
   static Iterable<Widget> divideTiles({ BuildContext context, @required Iterable<Widget> tiles, Color color }) sync* {
+    // ovo: not called
+
     assert(tiles != null);
     assert(color != null || context != null);
 
@@ -401,7 +403,7 @@ class MyListTile extends StatelessWidget {
       children.add(IconTheme.merge(
         data: iconThemeData,
         child: new Container(
-          margin: const EdgeInsetsDirectional.only(end: 16.0),
+          margin: const EdgeInsetsDirectional.only(end: 8.0),
           width: 40.0,
           alignment: AlignmentDirectional.center,
           child: leading,
